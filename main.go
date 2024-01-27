@@ -52,9 +52,22 @@ func getLikedSongs(ctx context.Context, client *spotify.Client) ([]spotify.Saved
 // The precision is rounded to a second.
 func filterByLength(tracks []spotify.SavedTrack, seconds int) []spotify.SavedTrack {
 	var filtered []spotify.SavedTrack
+	target := time.Duration(seconds) * time.Second
 	for _, track := range tracks {
-		// Spotify UI seems to round down the duration when converting milliseconds to seconds.
-		if track.Duration/1000 == seconds {
+		// When converting milliseconds to seconds to display the duration of a track,
+		// Spotify UI has inconsistent behavior across different platforms
+		// and even different situations on the same platform.
+		//
+		// For example, in Spotify Windows, the duration is rounded off when it's displayed in a playlist,
+		// which is the method used here.
+		// However, when it's displayed in search result, in an album,
+		// or at the bottom when the track is being played, it's rounded down.
+		//
+		// What makes it even more interesting is that the pattern observed on Windows
+		// is not the same as that on the web (and probably also different from the other platforms).
+		// To be specific, when it's shown in a playlist,
+		// the duration is rounded down on web, while it's rounded off on Windows.
+		if track.TimeDuration().Round(time.Second) == target {
 			filtered = append(filtered, track)
 		}
 	}
